@@ -10,12 +10,17 @@ import 'src/authentication.dart';
 import 'src/widgets.dart';
 
 class HomePage extends StatelessWidget {
-  const HomePage({Key? key}) : super(key: key);
-
-
+  const HomePage({
+    Key? key,
+    required this.dateString,
+    required this.placeString,
+    required this.descriptionString,
+  }) : super(key: key);
+  final String dateString;
+  final String placeString;
+  final String descriptionString;
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       appBar: AppBar(
         title: const Text("Sbrikki's Books Meetup"),
@@ -24,16 +29,8 @@ class HomePage extends StatelessWidget {
         children: <Widget>[
           Image.asset('assets/codelab.png'),
           const SizedBox(height: 8),
-          Consumer<ApplicationState>(
-            builder: (context, appState, _) =>
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  InfoMeeting(
-                    messages: appState.infoMeetingMessages,
-                  ),
-                ]),
-          ),
-          const IconAndDetail(Icons.calendar_today, "October 28"),
-          const IconAndDetail(Icons.location_city, 'Via Cesana, 31, 10139, Turin'),
+          IconAndDetail(Icons.calendar_today, dateString),
+          IconAndDetail(Icons.location_city, placeString),
           Consumer<ApplicationState>(
             builder: (context, appState, _) => Authentication(
               email: appState.email,
@@ -54,8 +51,8 @@ class HomePage extends StatelessWidget {
             color: Colors.grey,
           ),
           const Header("What we'll be doing"),
-          const Paragraph(
-            "Join us for a night full of Sbrikki's Books and alcol!",
+          Paragraph(
+            descriptionString,
           ),
           Consumer<ApplicationState>(
             builder: (context, appState, _) => Column(
@@ -75,7 +72,7 @@ class HomePage extends StatelessWidget {
                     state: appState.attending,
                     onSelection: (attending) => appState.attending = attending,
                   ),
-                  if(appState.attending == Attending.no)
+                  if (appState.attending == Attending.no)
                     const Text('Ocaca mbare fo vieni'),
                   // To here.
                   const Header('Discussion'),
@@ -112,23 +109,6 @@ class ApplicationState extends ChangeNotifier {
       notifyListeners();
     });
     // To here
-
-    _infoMeetingSubscription = FirebaseFirestore.instance
-        .collection('Meeting')
-        .snapshots()
-        .listen((snapshot) {
-      _infoMeetingMessages = [];
-      for (final document in snapshot.docs) {
-        _infoMeetingMessages.add(
-          InfoMeetingMessage(
-            date: document.data()['date'] as String,
-            place: document.data()['place'] as String,
-            description: document.data()['description'] as String,
-          ),
-        );
-      }
-      notifyListeners();
-    });
 
     FirebaseAuth.instance.userChanges().listen((user) {
       if (user != null) {
@@ -187,21 +167,8 @@ class ApplicationState extends ChangeNotifier {
   List<GuestBookMessage> _guestBookMessages = [];
   List<GuestBookMessage> get guestBookMessages => _guestBookMessages;
 
-  StreamSubscription<QuerySnapshot>? _infoMeetingSubscription;
-  List<InfoMeetingMessage> _infoMeetingMessages = [];
-  List<InfoMeetingMessage> get infoMeetingMessages => _infoMeetingMessages;
-
   int _attendees = 0;
   int get attendees => _attendees;
-
-  String _date = "NaN";
-  String get date => _date;
-
-  String _description = "NaN";
-  String get description => _description;
-
-  String _place = "NaN";
-  String get place => _place;
 
   Attending _attending = Attending.unknown;
   StreamSubscription<DocumentSnapshot>? _attendingSubscription;
@@ -223,12 +190,12 @@ class ApplicationState extends ChangeNotifier {
   }
 
   Future<void> verifyEmail(
-      String email,
-      void Function(FirebaseAuthException e) errorCallback,
-      ) async {
+    String email,
+    void Function(FirebaseAuthException e) errorCallback,
+  ) async {
     try {
       var methods =
-      await FirebaseAuth.instance.fetchSignInMethodsForEmail(email);
+          await FirebaseAuth.instance.fetchSignInMethodsForEmail(email);
       if (methods.contains('password')) {
         _loginState = ApplicationLoginState.password;
       } else {
@@ -242,10 +209,10 @@ class ApplicationState extends ChangeNotifier {
   }
 
   Future<void> signInWithEmailAndPassword(
-      String email,
-      String password,
-      void Function(FirebaseAuthException e) errorCallback,
-      ) async {
+    String email,
+    String password,
+    void Function(FirebaseAuthException e) errorCallback,
+  ) async {
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
@@ -301,41 +268,7 @@ class GuestBookMessage {
   final String message;
 }
 
-class InfoMeetingMessage {
-  InfoMeetingMessage(
-      {required this.date, required this.place, required this.description});
-  final String date;
-  final String place;
-  final String description;
-}
-
 enum Attending { yes, no, unknown }
-
-class InfoMeeting extends StatefulWidget {
-  const InfoMeeting({required this.messages});
-  final List<InfoMeetingMessage> messages;
-
-  @override
-  _InfoMeetingState createState() => _InfoMeetingState();
-}
-
-class _InfoMeetingState extends State<InfoMeeting> {
-  final _controller = TextEditingController();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 8),
-        for (var message in widget.messages)
-          Paragraph(
-              '${message.date}: ${message.place}\n${message.description}'),
-        const SizedBox(height: 8),
-      ],
-    );
-  }
-}
 
 class GuestBook extends StatefulWidget {
   const GuestBook({required this.addMessage, required this.messages});
